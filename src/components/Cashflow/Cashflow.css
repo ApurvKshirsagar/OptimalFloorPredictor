@@ -1,0 +1,55 @@
+.cashflow-card {
+  background: #fff;
+  border-radius: 1.1rem;
+  box-shadow: 0 2px 16px rgba(30, 41, 59, 0.07);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  margin: 2rem auto;
+  max-width: 700px;
+}
+
+.cashflow-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #23477a;
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
+
+.cashflow-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.2rem;
+}
+
+.cashflow-table th,
+.cashflow-table td {
+  padding: 0.85rem 0.7rem;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.cashflow-table th {
+  color: #64748b;
+  font-weight: 600;
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.cashflow-table td {
+  border-bottom: 1px solid #f1f1f1;
+  color: #22223b;
+  vertical-align: middle;
+}
+
+.max-profit-row {
+  background: #e0f7fa;
+  font-weight: 700;
+  color: #047857;
+}
+
+.cashflow-summary {
+  font-size: 1.08rem;
+  color: #23477a;
+  text-align: center;
+  margin-top: 1.2rem;
+}
