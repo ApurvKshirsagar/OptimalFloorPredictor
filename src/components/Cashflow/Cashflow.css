@@ -1,55 +1,317 @@
-.cashflow-card {
+/* Cashflow.css - final adjustments for toggle, slider, revenue summary */
+
+.cashflow-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 2rem 1rem;
+  background: #fff;
+}
+
+/* Section Card */
+.section-card {
   background: #fff;
   border-radius: 1.1rem;
   box-shadow: 0 2px 16px rgba(30, 41, 59, 0.07);
-  padding: 2rem 1.5rem 1.5rem 1.5rem;
-  margin: 2rem auto;
-  max-width: 700px;
+  padding: 2.2rem 2rem;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
-.cashflow-title {
-  font-size: 1.4rem;
+/* Section Title */
+.section-title {
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #23477a;
-  margin-bottom: 1.2rem;
-  text-align: center;
+  margin-bottom: 0.7rem;
+  color: #22223b;
 }
 
-.cashflow-table {
+/* Description */
+.calc-desc {
+  text-align: center;
+  color: #64748b;
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+}
+
+/* Input Layout */
+.input-row {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.7rem;
+  flex-wrap: wrap;
+}
+.input-group {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+}
+.input-group label {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.7rem;
+  color: #22223b;
+}
+.input-group input {
+  padding: 0.9rem 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+  background: #f9fafb;
+  color: #22223b;
+  outline: none;
+  transition: border 0.2s;
+}
+.input-group input:focus {
+  border-color: #2563eb;
+}
+
+/* Global Slider Style (blue & white) */
+input[type='range'] {
+  accent-color: #2563eb;
+}
+
+/* Toggle Switch Styling */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.toggle-row input[type='checkbox'] {
+  -webkit-appearance: none;
+  width: 46px;
+  height: 26px;
+  background-color: #e5e7eb;
+  border-radius: 34px;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.3s;
+}
+.toggle-row input[type='checkbox']::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+.toggle-row input[type='checkbox']:checked {
+  background-color: #2563eb;
+}
+.toggle-row input[type='checkbox']:checked::before {
+  transform: translateX(20px);
+}
+
+/* Parking Slider Container */
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border-left: 3px solid #2563eb;
+}
+
+.slider-group label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #22223b;
+}
+
+.slider-group input[type='range'] {
+  width: 100%;
+  max-width: 300px;
+}
+
+/* Params Table */
+.params-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1.2rem;
+  margin-top: 1.5rem;
+  background: #fff;
 }
-
-.cashflow-table th,
-.cashflow-table td {
+.params-table th,
+.params-table td {
   padding: 0.85rem 0.7rem;
-  text-align: center;
+  text-align: left;
   font-size: 1rem;
 }
-
-.cashflow-table th {
+.params-table th {
   color: #64748b;
   font-weight: 600;
   background: #f9fafb;
   border-bottom: 2px solid #e5e7eb;
 }
-
-.cashflow-table td {
+.params-table td {
   border-bottom: 1px solid #f1f1f1;
   color: #22223b;
   vertical-align: middle;
 }
-
-.max-profit-row {
-  background: #e0f7fa;
-  font-weight: 700;
-  color: #047857;
+.highlight {
+  background: #f8fafc;
 }
 
-.cashflow-summary {
-  font-size: 1.08rem;
-  color: #23477a;
+/* Structural Sum Indicator */
+.sum-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  font-size: 0.95rem;
+  flex-wrap: wrap;
+}
+.sum-row .good {
+  color: #047857;
+  font-weight: 600;
+}
+.sum-row .bad {
+  color: #b91c1c;
+  font-weight: 600;
+}
+.sum-row .hint {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Buttons & Error */
+.btn {
+  background: #23477a;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.8rem 2.2rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: block;
+  margin: 2rem auto 1rem auto;
+}
+.btn:hover,
+.btn:focus {
+  background: #1e3a8a;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  border-left: 4px solid #b91c1c;
+}
+
+/* Results Layout */
+.results {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.summary-card {
+  background: #fff;
+  border-radius: 0.7rem;
+  box-shadow: 0 2px 12px rgba(30, 41, 59, 0.07);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.summary-card div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.summary-label {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+.summary-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #22223b;
+}
+
+/* Revenue Summary Card (from original Revenue.css) */
+.rev-summary {
   text-align: center;
-  margin-top: 1.2rem;
+  background: linear-gradient(90deg, #f8fafc 0%, #e0e7ef 100%);
+  border: 1.5px solid #e5e7eb;
+  box-shadow: 0 4px 24px rgba(30, 41, 59, 0.09);
+  padding: 2.2rem 1.5rem 1.7rem 1.5rem;
+  margin-bottom: 1rem;
+}
+.rev-summary .summary-label {
+  font-size: 1.1rem;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.rev-summary .summary-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #23477a;
+  margin-bottom: 0.7rem;
+}
+.rev-summary .revenue-per-sqft {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+.rev-summary .per-sqft-value {
+  font-weight: 700;
+  color: #23477a;
+  font-size: 1.2rem;
+}
+
+/* Charts and Tables */
+.charts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.chart-card {
+  flex: 1;
+  min-width: 45%;
+}
+.full-chart,
+.full-table {
+  width: 100%;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .charts-row {
+    flex-direction: column;
+  }
+  .chart-card {
+    width: 100%;
+  }
+}
+@media (max-width: 700px) {
+  .section-card {
+    padding: 1.3rem 0.7rem;
+  }
+  .input-row {
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .params-table th,
+  .params-table td {
+    font-size: 0.97rem;
+    padding: 0.7rem 0.4rem;
+  }
 }
