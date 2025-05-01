@@ -53,3 +53,19 @@
   text-align: center;
   margin-top: 1.2rem;
 }
+
+.show-more-btn {
+  background-color: transparent;
+  color: #1e4976;
+  border: 1px solid #1e4976;
+  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.show-more-btn:hover {
+  background-color: #1e4976;
+  color: #ffffff;
+}

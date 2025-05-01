@@ -27,8 +27,8 @@ const COMPONENT_KEYS = [
 
 export default function Cashflow() {
   // === Cost states (naming from Calculator.jsx) ===
-  const [basicCost, setBasicCost] = useState('7000000');
-  const [floors, setFloors] = useState('10');
+  const [basicCost, setBasicCost] = useState('10000000');
+  const [floors, setFloors] = useState('100');
   const [isGroundParking, setIsGroundParking] = useState(false);
   const [parkingPercent, setParkingPercent] = useState(25);
   const [params, setParams] = useState([
@@ -86,14 +86,14 @@ export default function Cashflow() {
   const [showAllRevenueRows, setShowAllRevenueRows] = useState(false);
 
   // === Revenue states (naming from Revenue.jsx) ===
-  const [basePrice, setBasePrice] = useState('70000');
+  const [basePrice, setBasePrice] = useState('60000');
   const [viewPercentage, setViewPercentage] = useState(10);
   const [viewBase, setViewBase] = useState(10);
   const [maxHeatPenaltyPercentage, setMaxHeatPenaltyPercentage] = useState(3);
   const [heatExponent, setHeatExponent] = useState(3);
   const [elevatorPenaltyPercentage, setElevatorPenaltyPercentage] =
     useState(0.25);
-  const [area, setArea] = useState(3560);
+  const [area, setArea] = useState(3464.72);
   const [validationErrorRev, setValidationErrorRev] = useState('');
   const [isLoadingRev, setIsLoadingRev] = useState(false);
 
@@ -105,7 +105,13 @@ export default function Cashflow() {
     useState(null);
 
   // === Cashflow related states ===
-  const [cashflowMarr, setCashflowMarr] = useState(20); // editable
+  const [cashflowMarr, setCashflowMarr] = useState(15); // editable
+  const [fsi, setFsi] = useState(3);
+  const [builtupAreaSqFtPerFloor, setBuiltupAreaSqFtPerFloor] =
+    useState(4540.72);
+  const [landCostPerSqFt, setLandCostPerSqFt] = useState(20000);
+  const [landAreaBaseSqFt, setLandAreaBaseSqFt] = useState(18655.15);
+
   const cashflowConstructionPeriod = 5; // fixed 5 years
   const [cashflowData, setCashflowData] = useState([]); // final graph data
   const [isGeneratingCashflow, setIsGeneratingCashflow] = useState(false);
@@ -320,6 +326,10 @@ export default function Cashflow() {
       envelopePercentage: params.find((p) => p.id === 'envelope').percent / 100,
       MEPPercentage: params.find((p) => p.id === 'mep').percent / 100,
       marr: cashflowMarr / 100,
+      fsi,
+      builtupAreaSqFtPerFloor,
+      landCostPerSqFt,
+      landAreaBaseSqFt,
     };
     const reqRev = {
       basePrice: Number(basePrice),
@@ -366,6 +376,7 @@ export default function Cashflow() {
         tempCashflowData.push({
           floor: i,
           Revenue: cumulativeRevenue,
+          // Cost: cumulativeCost + costData.cashflowFloorCost,
           Cost: cumulativeCost,
         });
       }
@@ -839,7 +850,7 @@ export default function Cashflow() {
               </ResponsiveContainer>
             </div>
           )}
-          {breakdownByFloorData.length > 0 && (
+          {breakdownByFloorRev.length > 0 && (
             <div className='full-width-card'>
               <div className='result-heading'>
                 Floor-wise Revenue Breakdown Per Square Feet
@@ -856,7 +867,10 @@ export default function Cashflow() {
                     </tr>
                   </thead>
                   <tbody>
-                    {breakdownByFloorRev.map((row) => (
+                    {(showAllRevenueRows
+                      ? breakdownByFloorRev
+                      : breakdownByFloorRev.slice(0, 10)
+                    ).map((row) => (
                       <tr key={row.floor}>
                         <td>{row.floor}</td>
                         <td>
@@ -885,9 +899,43 @@ export default function Cashflow() {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Toggle Button */}
+                {breakdownByFloorRev.length > 10 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginTop: '1.5rem',
+                    }}
+                  >
+                    <div
+                      style={{
+                        flex: 1,
+                        height: '1px',
+                        backgroundColor: '#d1d5db',
+                      }}
+                    />
+                    <button
+                      className='show-more-btn'
+                      onClick={() => setShowAllRevenueRows(!showAllRevenueRows)}
+                      style={{ margin: '0 1rem' }}
+                    >
+                      {showAllRevenueRows ? 'Show Less' : 'Show All Floors'}
+                    </button>
+                    <div
+                      style={{
+                        flex: 1,
+                        height: '1px',
+                        backgroundColor: '#d1d5db',
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
+
           {/* --- Cashflow Inputs Section --- */}
           <div className='calc-card' style={{ marginTop: '2rem' }}>
             <div className='calc-section-title'>Cashflow Parameters</div>
@@ -902,6 +950,47 @@ export default function Cashflow() {
                   onChange={(e) => setCashflowMarr(Number(e.target.value))}
                 />
               </div>
+              <div className='calc-input-group'>
+                <label className='calc-label'>FSI</label>
+                <input
+                  type='number'
+                  className='calc-input'
+                  value={fsi}
+                  onChange={(e) => setFsi(Number(e.target.value))}
+                />
+              </div>
+              <div className='calc-input-group'>
+                <label className='calc-label'>
+                  Built-up Area per Floor (sq ft)
+                </label>
+                <input
+                  type='number'
+                  className='calc-input'
+                  value={builtupAreaSqFtPerFloor}
+                  onChange={(e) =>
+                    setBuiltupAreaSqFtPerFloor(Number(e.target.value))
+                  }
+                />
+              </div>
+              <div className='calc-input-group'>
+                <label className='calc-label'>Land Cost per sq ft (₹)</label>
+                <input
+                  type='number'
+                  className='calc-input'
+                  value={landCostPerSqFt}
+                  onChange={(e) => setLandCostPerSqFt(Number(e.target.value))}
+                />
+              </div>
+              <div className='calc-input-group'>
+                <label className='calc-label'>Land Area Base (sq ft)</label>
+                <input
+                  type='number'
+                  className='calc-input'
+                  value={landAreaBaseSqFt}
+                  onChange={(e) => setLandAreaBaseSqFt(Number(e.target.value))}
+                />
+              </div>
+
               <div className='calc-input-group'>
                 <label className='calc-label'>
                   Construction Period (years)
