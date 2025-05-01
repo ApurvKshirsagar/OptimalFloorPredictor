@@ -347,16 +347,19 @@ export default function Cashflow() {
 
     try {
       for (let i = 1; i <= Number(floors); i++) {
-        const costRes = await fetch('http://localhost:3000/floorcost', {
+        const costRes = await fetch('http://localhost:3000/totalcost', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...reqCost,
-            totalNumber: Number(floors),
-            floorNumber: i,
+            // totalNumber: Number(floors),
+            // floorNumber: i,
+            totalNumber: i,
           }),
         });
         const costData = await costRes.json();
+        cumulativeCost =
+          costData.cashflowBuildingCost + costData.buildingLandCost;
 
         const revRes = await fetch('http://localhost:3000/revenue', {
           method: 'POST',
@@ -371,7 +374,7 @@ export default function Cashflow() {
 
         // Here we cumulatively add floor-by-floor
         cumulativeRevenue += revData.floorRevenueForCashflow;
-        cumulativeCost += costData.cashflowFloorCost;
+        // cumulativeCost += costData.cashflowFloorCost;
 
         tempCashflowData.push({
           floor: i,
@@ -628,10 +631,24 @@ export default function Cashflow() {
               <ResponsiveContainer width='100%' height={400}>
                 <BarChart
                   data={breakdownByFloorData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
                 >
                   <CartesianGrid strokeDasharray='3 3' />
-                  <XAxis dataKey='floor' />
+                  <Legend
+                    verticalAlign='top'
+                    align='center'
+                    height={40} // make space for multi-line or wrapped entries
+                    wrapperStyle={{ top: 0, left: 0, right: 0 }}
+                  />
+                  <XAxis
+                    dataKey='floor'
+                    label={{
+                      value: 'Floor Number',
+                      position: 'insideBottom',
+                      offset: -10,
+                    }}
+                  />
+
                   <YAxis
                     tickFormatter={(value) => {
                       if (value === 0) return '₹0';
