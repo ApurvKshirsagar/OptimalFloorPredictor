@@ -10,6 +10,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import {
+  calculateViewPremium,
+  calculateHeatPenalty,
+  calculateElevatorPenalty,
+} from './revenueFunctions';
 
 export default function RevenueCalculator() {
   // Form states
@@ -32,85 +37,88 @@ export default function RevenueCalculator() {
   const [buildingRevenuePerSqFeet, setBuildingRevenuePerSqFeet] =
     useState(null);
 
+  // Calculate revenue for a single floor
+  const calculateFloorRevenue = (floorNumber, totalFloors) => {
+    const basePriceNum = Number(basePrice);
+    const viewPremium = calculateViewPremium(
+      Number(viewPercentage) / 100,
+      basePriceNum,
+      Number(viewBase),
+      floorNumber
+    );
+    
+    const heatPenalty = floorNumber === 1 
+      ? 0 
+      : calculateHeatPenalty(
+          Number(maxHeatPenaltyPercentage) / 100,
+          basePriceNum,
+          Number(heatExponent),
+          floorNumber,
+          totalFloors
+        );
+
+    const elevatorPenalty = calculateElevatorPenalty(
+      Number(elevatorPenaltyPercentage) / 100,
+      basePriceNum,
+      floorNumber
+    );
+
+    const floorRevenue = (basePriceNum + viewPremium - heatPenalty - elevatorPenalty) * Number(area);
+    
+    return {
+      floorRevenue,
+      floorBreakdown: {
+        basePrice: basePriceNum * Number(area),
+        viewPremium: viewPremium * Number(area),
+        heatPenalty: heatPenalty * Number(area),
+        elevatorPenalty: elevatorPenalty * Number(area),
+      }
+    };
+  };
+
   // Main calculation
-  const calculateRevenue = async () => {
+  const calculateRevenue = () => {
     setValidationError('');
     setIsLoading(true);
     setTotalBuildingRevenue(null);
-    setBuildingRevenuePerSqFeet(null); // Clear previous result
-
-    const requestData = {
-      basePrice: Number(basePrice),
-      viewPercentage: Number(viewPercentage) / 100,
-      viewBase: Number(viewBase),
-      maxHeatPenaltyPercentage: Number(maxHeatPenaltyPercentage) / 100,
-      heatExponent: Number(heatExponent),
-      elevatorPenaltyPercentage: Number(elevatorPenaltyPercentage) / 100,
-      area: Number(area),
-    };
+    setBuildingRevenuePerSqFeet(null);
 
     try {
-      // Fetch totalBuildingRevenue from the first floor's response
-      const firstRes = await fetch('http://localhost:3000/revenue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...requestData,
-          totalNumber: Number(floors),
-          floorNumber: 1,
-        }),
-      });
-      const firstData = await firstRes.json();
-      setTotalBuildingRevenue(firstData.buildingRevenue);
-      setBuildingRevenuePerSqFeet(firstData.buildingRevenuePerSqFeet);
-
-      // 1. Fetch Revenue by Floor
+      const totalFloors = Number(floors);
+      let totalRevenue = 0;
       const revenueArr = [];
-      for (let i = 1; i <= Number(floors); i++) {
-        const res = await fetch('http://localhost:3000/revenue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...requestData,
-            totalNumber: Number(floors),
-            floorNumber: i,
-          }),
-        });
-        const data = await res.json();
+      const breakdownArr = [];
+
+      // Calculate revenue for each floor
+      for (let i = 1; i <= totalFloors; i++) {
+        const result = calculateFloorRevenue(i, totalFloors);
+        totalRevenue += result.floorRevenue;
+        
         revenueArr.push({
           floor: i,
-          revenue: data.floorRevenue,
+          revenue: result.floorRevenue,
         });
-      }
-      setRevenueByFloorData(revenueArr);
 
-      // 2. Fetch Breakdown by Floor
-      const breakdownArr = [];
-      for (let i = 1; i <= Number(floors); i++) {
-        const res = await fetch('http://localhost:3000/revenue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...requestData,
-            totalNumber: Number(floors),
-            floorNumber: i,
-          }),
-        });
-        const data = await res.json();
         breakdownArr.push({
           floor: i,
-          Base: data.floorBreakdown.basePrice,
-          'View Premium': data.floorBreakdown.viewPremium,
-          'Heat Penalty': data.floorBreakdown.heatPenalty,
-          'Elevator Penalty': data.floorBreakdown.elevatorPenalty,
+          Base: result.floorBreakdown.basePrice / Number(area),
+          'View Premium': result.floorBreakdown.viewPremium / Number(area),
+          'Heat Penalty': result.floorBreakdown.heatPenalty / Number(area),
+          'Elevator Penalty': result.floorBreakdown.elevatorPenalty / Number(area),
         });
       }
+
+      setRevenueByFloorData(revenueArr);
       setBreakdownByFloorData(breakdownArr);
+      setTotalBuildingRevenue(totalRevenue);
+      setBuildingRevenuePerSqFeet(totalRevenue / (Number(area) * totalFloors));
+
     } catch (error) {
       setValidationError('Error calculating revenue. Please try again.');
       setRevenueByFloorData([]);
       setBreakdownByFloorData([]);
       setTotalBuildingRevenue(null);
+      setBuildingRevenuePerSqFeet(null);
     } finally {
       setIsLoading(false);
     }

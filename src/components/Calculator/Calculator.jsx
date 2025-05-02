@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-import { calculateTotalCost, calculateFloorCost } from './costFunctions';
+import { calculateBuildingCost, calculateFloorCost } from './costFunctions';
 
 // Pie chart colors
 const PIE_COLORS = ['#2196F3', '#4CAF50', '#FFC107', '#FF9800', '#9C27B0'];
@@ -130,26 +130,28 @@ export default function Calculator() {
     return beams + column + foundation;
   };
 
-  // —————————————————————————————
-  // 1) Turn your slider %'s into decimals
-  const civPct = params.find((p) => p.id === 'civil')?.percent / 100;
-  const strPct = params.find((p) => p.id === 'structural')?.percent / 100;
-  const beamsPct = params.find((p) => p.id === 'beams')?.percent / 100;
-  const colPct = params.find((p) => p.id === 'column')?.percent / 100;
-  const funPct = params.find((p) => p.id === 'foundation')?.percent / 100;
-  const envPct = params.find((p) => p.id === 'envelope')?.percent / 100;
-  const mepPct = params.find((p) => p.id === 'mep')?.percent / 100;
+  const civilPercentage = params.find((p) => p.id === 'civil')?.percent / 100;
+  const structuralPercentage = params.find((p) => p.id === 'structural')?.percent / 100;
+  const beamsSlabPercentage = params.find((p) => p.id === 'beams')?.percent / 100;
+  const columnPercentage = params.find((p) => p.id === 'column')?.percent / 100;
+  const foundationPercentage = params.find((p) => p.id === 'foundation')?.percent / 100;
+  const envelopePercentage = params.find((p) => p.id === 'envelope')?.percent / 100;
+  const MEPPercentage = params.find((p) => p.id === 'mep')?.percent / 100;
 
   // 2) Compute net percentages
-  const netStrPct = civPct * strPct;
-  const netBeams = netStrPct * beamsPct;
-  const netCols = netStrPct * colPct;
-  const netFuns = netStrPct * funPct;
-  const netEnv = civPct * envPct;
+  const netStructuralPercentage = civilPercentage * structuralPercentage;
+  const netBeamsSlabPercentage = netStructuralPercentage * beamsSlabPercentage;
+  const netColumnPercentage = netStructuralPercentage * columnPercentage;
+  const netFoundationPercentage =
+    netStructuralPercentage * foundationPercentage;
+  const netEnvelopePercentage = civilPercentage * envelopePercentage;
 
-  // 3) Main calculateCost
+  const beamsSlabConstructibilityCost = 0.03
+  const columnConstructibilityCost = 0.03
+  const envelopeConstructibilityCost = 0.05
+  const MEPConstructibilityCost = 0.01
+
   const calculateCost = () => {
-    // a) Validate
     if (!validateStructuralComponents()) {
       setValidationError(
         'Beams & Slab + Column + Foundation must sum to 100%.'
@@ -159,33 +161,26 @@ export default function Calculator() {
     setValidationError('');
     setIsLoading(true);
 
-    // b) Parse inputs
     const totalNumber = Number(floors);
     const floorCost = Number(basicCost);
-    const parkPct = parkingPercent / 100;
+    const parkingCostPercentage = parkingPercent / 100;
 
-    // c) Overall building summary
-    const totalRes = calculateTotalCost({
-      totalNumber,
+    const totalRes = calculateBuildingCost(
       floorCost,
-      isParkingFloor,
-      parkingCostPercentage: parkPct,
-      civilPercentage: civPct,
-      structuralPercentage: strPct,
-      beamsSlabPercentage: beamsPct,
-      columnPercentage: colPct,
-      foundationPercentage: funPct,
-      envelopePercentage: envPct,
-      MEPPercentage: mepPct,
-      marr: cashflowMarr / 100,
-      constructionPeriod: 5,
-      fsi,
-      builtupAreaSqFtPerFloor,
-      landCostPerSqFt,
-      landAreaBaseSqFt,
-    });
+      totalNumber,
+      netBeamsSlabPercentage,
+      beamsSlabConstructibilityCost,
+      netEnvelopePercentage,
+      envelopeConstructibilityCost,
+      MEPPercentage,
+      MEPConstructibilityCost,
+      netColumnPercentage,
+      columnConstructibilityCost,
+      netFoundationPercentage,
+      isGroundParking ,
+      parkingCostPercentage
+    );
 
-    // d) Summary & pie chart
     setCalculationResult(totalRes);
     setComponentPieData(
       COMPONENT_KEYS.map((c, i) => ({
@@ -195,69 +190,62 @@ export default function Calculator() {
       }))
     );
 
-    // e) Cost by floor
+    const floorcostArr = [];
+    for (let i = 1; i <= totalNumber; i++) {
+      const tillThatFloorCost = calculateBuildingCost(
+        floorCost,
+        i,
+        netBeamsSlabPercentage,
+        beamsSlabConstructibilityCost,
+        netEnvelopePercentage,
+        envelopeConstructibilityCost,
+        MEPPercentage,
+        MEPConstructibilityCost,
+        netColumnPercentage,
+        columnConstructibilityCost,
+        netFoundationPercentage,
+        isGroundParking,
+        parkingCostPercentage
+      );
+      floorcostArr.push({ floor: i, cost: tillThatFloorCost.finalBuildingCost });
+    }
+    setCostByFloorData(floorcostArr);
+
     const costArr = [];
     for (let i = 1; i <= totalNumber; i++) {
-      const floorRes = calculateFloorCost({
-        totalNumber,
-        floorNumber: i,
+      const floorRes = calculateFloorCost(
         floorCost,
-        civilPercentage: civPct,
-        structuralPercentage: strPct,
-        beamsSlabPercentage: beamsPct,
-        columnPercentage: colPct,
-        foundationPercentage: funPct,
-        envelopePercentage: envPct,
-        MEPPercentage: mepPct,
-        marr: cashflowMarr / 100,
-        constructionPeriod: 5,
-        fsi,
-        builtupAreaSqFtPerFloor,
-        landCostPerSqFt,
-        landAreaBaseSqFt,
-      });
-      costArr.push({ floor: i, cost: floorRes.floorCost });
+        i,
+        totalNumber,
+        netBeamsSlabPercentage,
+        beamsSlabConstructibilityCost,
+        netEnvelopePercentage,
+        envelopeConstructibilityCost,
+        MEPPercentage,
+        MEPConstructibilityCost,
+        netColumnPercentage,
+        columnConstructibilityCost,
+        netFoundationPercentage
+      );
+      costArr.push({ floor: i, cost: floorRes.floorCost, floorBreakdown: floorRes.floorBreakdown });
     }
-    setCostByFloorData(costArr);
 
-    // f) Breakdown table
-    const breakdownArr = costArr.map(({ floor }) => {
-      const fr = calculateFloorCost({
-        totalNumber,
-        floorNumber: floor,
-        floorCost,
-        civilPercentage: civPct,
-        structuralPercentage: strPct,
-        beamsSlabPercentage: beamsPct,
-        columnPercentage: colPct,
-        foundationPercentage: funPct,
-        envelopePercentage: envPct,
-        MEPPercentage: mepPct,
-        marr: cashflowMarr / 100,
-        constructionPeriod: 5,
-        fsi,
-        builtupAreaSqFtPerFloor,
-        landCostPerSqFt,
-        landAreaBaseSqFt,
-      });
-      return {
-        floor,
-        'Beams & Slab': fr.floorBreakdown.beamsSlabCost,
-        Column: fr.floorBreakdown.columnCost,
-        Foundation: fr.floorBreakdown.foundationCost,
-        Envelope: fr.floorBreakdown.envelopeCost,
-        MEP: fr.floorBreakdown.MEPCost,
-      };
-    });
+    const breakdownArr = costArr.map(({ floor, floorBreakdown }) => ({
+      floor,
+      'Beams & Slab': floorBreakdown.beamsSlabCost,
+      Column: floorBreakdown.columnCost,
+      Foundation: floorBreakdown.foundationCost,
+      Envelope: floorBreakdown.envelopeCost,
+      MEP: floorBreakdown.MEPCost,
+    }));
     setBreakdownByFloorData(breakdownArr);
 
     setIsLoading(false);
   };
-}
+
 
 return (
   <div className='calculator-page'>
-    {/* --- Input Section --- */}
     <h1 className='calc-title'>Skyscraper Cost Calculator</h1>
     <p className='calc-desc'>
       Enter the required information below to calculate the estimated cost of
@@ -400,7 +388,7 @@ return (
             <div className='summary-item'>
               <span className='summary-label'>Total Floors</span>
               <span className='summary-value'>
-                {calculationResult.totalNumber}
+                {Number(floors)}
               </span>
             </div>
             <div className='summary-item'>
@@ -482,10 +470,23 @@ return (
           <ResponsiveContainer width='100%' height={400}>
             <BarChart
               data={breakdownByFloorData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
             >
               <CartesianGrid strokeDasharray='3 3' />
-              <XAxis dataKey='floor' />
+              <Legend
+                    verticalAlign='top'
+                    align='center'
+                    height={40} // make space for multi-line or wrapped entries
+                    wrapperStyle={{ top: 0, left: 0, right: 0 }}
+                  />
+              <XAxis
+                    dataKey='floor'
+                    label={{
+                      value: 'Floor Number',
+                      position: 'insideBottom',
+                      offset: -10,
+                    }}
+                  />
               <YAxis
                 tickFormatter={(value) => {
                   if (value === 0) return '₹0';
@@ -507,3 +508,4 @@ return (
     )}
   </div>
 );
+}

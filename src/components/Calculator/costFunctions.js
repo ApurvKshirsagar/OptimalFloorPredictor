@@ -4,7 +4,6 @@ export function calculateMEPCost(
   MEPPercentage,
   MEPConstructibilityCost
 ) {
-  if (floorNumber === 0) return 0;
   return (
     floorCost *
     MEPPercentage *
@@ -18,7 +17,6 @@ export function calculateEnvelopeCost(
   netenvelopePercentage,
   envelopeConstructibilityCost
 ) {
-  if (floorNumber === 0) return 0;
   return (
     floorCost *
     netenvelopePercentage *
@@ -41,7 +39,6 @@ export function calculateColumnCost(
   netcolumnPercentage,
   columnConstructibilityCost
 ) {
-  if (floorNumber === 0) return 0;
   return (
     floorCost *
     netcolumnPercentage *
@@ -56,7 +53,6 @@ export function calculateBeamsSlabCost(
   netBeamsSlabPercentage,
   beamsSlabConstructibilityCost
 ) {
-  if (floorNumber === 0) return 0;
   return (
     floorCost *
     netBeamsSlabPercentage *
@@ -132,12 +128,21 @@ export function calculateBuildingCost(
         floorCost *
           (parkingCostPercentage *
             (netColumnPercentage * totalNumber + (1 - netColumnPercentage)));
-  return finalBuildingCost;
+            return {
+              finalBuildingCost: finalBuildingCost,
+              breakdown: {
+                totalBeamsSlabCost,
+                totalColumnCost,
+                totalFoundationCost,
+                totalEnvelopeCost,
+                totalMEPCost,
+              }
+            };
 }
 
 export function calculateCashflowFloorCost(
   presentWorth,
-  marr = 0.15,
+  marr,
   constructionPeriod = 5
 ) {
   const sCurveDistribution = [0.1, 0.2, 0.35, 0.25, 0.1]; // Year 1 to 5
@@ -175,101 +180,77 @@ export function calculateFloorLandCost({
   return pwLandCost * Math.pow(1 + marr, constructionPeriod);
 }
 
-export function calculateFloorCost(customConfig) {
-  const cfg = { ...customConfig };
-  const {
-    totalNumber,
-    floorNumber,
-    floorCost,
-    civilPercentage,
-    structuralPercentage,
-    beamsSlabPercentage,
-    columnPercentage,
-    foundationPercentage,
-    envelopePercentage,
-    MEPPercentage,
-    beamsSlabConstructibilityCost,
-    columnConstructibilityCost,
-    envelopeConstructibilityCost,
-    MEPConstructibilityCost,
-    marr,
-    constructionPeriod,
-    fsi,
-    builtupAreaSqFtPerFloor,
-    landCostPerSqFt,
-    landAreaBaseSqFt,
-  } = cfg;
+export function calculateFloorCost(
+  floorCost,
+  floorNumber,
+  totalNumber,
+  netBeamsSlabPercentage,
+  beamsSlabConstructibilityCost,
+  netEnvelopePercentage,
+  envelopeConstructibilityCost,
+  MEPPercentage,
+  MEPConstructibilityCost,
+  netColumnPercentage,
+  columnConstructibilityCost,
+  netFoundationPercentage,
+) {
+  const beamsSlabCost =
+    floorNumber === 0
+      ? 0
+      : calculateBeamsSlabCost(
+          floorCost,
+          floorNumber,
+          netBeamsSlabPercentage,
+          beamsSlabConstructibilityCost
+        );
 
-  const netStrPct = civilPercentage * structuralPercentage;
-  const netEnvPct = civilPercentage * envelopePercentage;
-  const netBeamsPct = netStrPct * beamsSlabPercentage;
-  const netColsPct = netStrPct * columnPercentage;
-  const netFunsPct = netStrPct * foundationPercentage;
+  const columnCost =
+    floorNumber === 0
+      ? 0
+      : calculateColumnCost(
+          floorCost,
+          floorNumber,
+          totalNumber,
+          netColumnPercentage,
+          columnConstructibilityCost
+        );
 
-  const beamsSlabCost = calculateBeamsSlabCost(
-    floorCost,
-    floorNumber,
-    netBeamsPct,
-    beamsSlabConstructibilityCost
-  );
-  const columnCost = calculateColumnCost(
-    floorCost,
-    floorNumber,
-    totalNumber,
-    netColsPct,
-    columnConstructibilityCost
-  );
-  const foundationCost = calculateFoundationCost(
-    floorCost,
-    totalNumber === floorNumber ? totalNumber : 0,
-    netFunsPct
-  );
-  const envelopeCost = calculateEnvelopeCost(
-    floorCost,
-    floorNumber,
-    netEnvPct,
-    envelopeConstructibilityCost
-  );
-  const MEPCost = calculateMEPCost(
-    floorCost,
-    floorNumber,
-    MEPPercentage,
-    MEPConstructibilityCost
-  );
+  const foundationCost =
+    floorNumber === 0 ? totalNumber * floorCost * netFoundationPercentage : 0;
+
+  const envelopeCost =
+    floorNumber === 0
+      ? 0
+      : calculateEnvelopeCost(
+          floorCost,
+          floorNumber,
+          netEnvelopePercentage,
+          envelopeConstructibilityCost
+        );
+
+  const MEPCost =
+    floorNumber === 0
+      ? 0
+      : calculateMEPCost(
+          floorCost,
+          floorNumber,
+          MEPPercentage,
+          MEPConstructibilityCost
+        );
 
   const structuralCost = beamsSlabCost + columnCost + foundationCost;
   const civilCost = structuralCost + envelopeCost;
-  const floorTotalCost = civilCost + MEPCost;
-
-  const cashflowFloorCost = calculateCashflowFloorCost(
-    floorTotalCost,
-    marr,
-    constructionPeriod
-  );
-  const floorLandCost = calculateFloorLandCost({
-    floorNumber,
-    fsi,
-    builtupAreaSqFtPerFloor,
-    landCostPerSqFt,
-    landAreaBaseSqFt,
-    marr,
-    constructionPeriod,
-  });
+  const estimatedTotalFloorCost = civilCost + MEPCost;
 
   return {
-    totalNumber,
-    floorNumber,
-    floorCost: floorTotalCost,
-    cashflowFloorCost,
-    floorLandCost,
+    floorCost: estimatedTotalFloorCost,
     floorBreakdown: {
-      civilCost,
-      structuralCost,
       beamsSlabCost,
       columnCost,
       foundationCost,
       envelopeCost,
-      MEPCost,
-    },
+      MEPCost
+    }
   };
 }
+
