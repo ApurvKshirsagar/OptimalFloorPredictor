@@ -16,6 +16,13 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+import { calculateBuildingCost, calculateFloorCost } from './costFunctions';
+import {
+  calculateViewPremium,
+  calculateHeatPenalty,
+  calculateElevatorPenalty,
+} from './revenueFunctions';
+
 const PIE_COLORS = ['#2196F3', '#4CAF50', '#FFC107', '#FF9800', '#9C27B0'];
 const COMPONENT_KEYS = [
   { key: 'totalBeamsSlabCost', label: 'Beams & Slab' },
@@ -149,158 +156,196 @@ export default function Cashflow() {
     setValidationError('');
   };
 
-  // === calculateCost (from Calculator.jsx) ===
-  const calculateCost = async () => {
-    if (!validateStructuralComponents()) {
-      setValidationError(
-        'Beams & Slab + Column + Foundation must sum to 100%.'
-      );
-      return;
-    }
-    setValidationError('');
-    setIsLoading(true);
-    try {
-      const req = {
-        totalNumber: Number(floors),
-        floorCost: Number(basicCost),
-        isParkingFloor: isGroundParking,
-        parkingCostPercentage: parkingPercent / 100,
-        civilPercentage: params.find((p) => p.id === 'civil').percent / 100,
-        structuralPercentage:
-          params.find((p) => p.id === 'structural').percent / 100,
-        beamsSlabPercentage: params.find((p) => p.id === 'beams').percent / 100,
-        columnPercentage: params.find((p) => p.id === 'column').percent / 100,
-        foundationPercentage:
-          params.find((p) => p.id === 'foundation').percent / 100,
-        envelopePercentage:
-          params.find((p) => p.id === 'envelope').percent / 100,
-        MEPPercentage: params.find((p) => p.id === 'mep').percent / 100,
-      };
-      const mainRes = await fetch('http://localhost:3000/totalcost', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req),
-      });
-      const mainData = await mainRes.json();
-      setCalculationResult(mainData);
-      setComponentPieData(
-        COMPONENT_KEYS.map((c, i) => ({
-          name: c.label,
-          value: mainData.breakdown[c.key],
-          color: PIE_COLORS[i],
-        }))
-      );
-      const costArr = [];
-      for (let i = 1; i <= Number(floors); i++) {
-        const r = await fetch('http://localhost:3000/totalcost', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...req, totalNumber: i }),
-        });
-        const d = await r.json();
-        costArr.push({ floor: i, cost: d.finalBuildingCost });
-      }
-      setCostByFloorData(costArr);
-      const brk = [];
-      for (let i = 1; i <= Number(floors); i++) {
-        const r = await fetch('http://localhost:3000/floorcost', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...req,
-            totalNumber: Number(floors),
-            floorNumber: i,
-          }),
-        });
-        const d = await r.json();
-        brk.push({
-          floor: i,
-          'Beams & Slab': d.floorBreakdown.beamsSlabCost,
-          Column: d.floorBreakdown.columnCost,
-          Foundation: d.floorBreakdown.foundationCost,
-          Envelope: d.floorBreakdown.envelopeCost,
-          MEP: d.floorBreakdown.MEPCost,
-        });
-      }
-      setBreakdownByFloorData(brk);
-    } catch (err) {
-      setValidationError('Error calculating cost. Please try again.');
-      setCalculationResult(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ const civilPercentage = params.find((p) => p.id === 'civil')?.percent / 100;
+   const structuralPercentage = params.find((p) => p.id === 'structural')?.percent / 100;
+   const beamsSlabPercentage = params.find((p) => p.id === 'beams')?.percent / 100;
+   const columnPercentage = params.find((p) => p.id === 'column')?.percent / 100;
+   const foundationPercentage = params.find((p) => p.id === 'foundation')?.percent / 100;
+   const envelopePercentage = params.find((p) => p.id === 'envelope')?.percent / 100;
+   const MEPPercentage = params.find((p) => p.id === 'mep')?.percent / 100;
+ 
+   // 2) Compute net percentages
+   const netStructuralPercentage = civilPercentage * structuralPercentage;
+   const netBeamsSlabPercentage = netStructuralPercentage * beamsSlabPercentage;
+   const netColumnPercentage = netStructuralPercentage * columnPercentage;
+   const netFoundationPercentage =
+     netStructuralPercentage * foundationPercentage;
+   const netEnvelopePercentage = civilPercentage * envelopePercentage;
+ 
+   const beamsSlabConstructibilityCost = 0.03
+   const columnConstructibilityCost = 0.03
+   const envelopeConstructibilityCost = 0.05
+   const MEPConstructibilityCost = 0.01
+ 
+   const calculateCost = () => {
+     if (!validateStructuralComponents()) {
+       setValidationError(
+         'Beams & Slab + Column + Foundation must sum to 100%.'
+       );
+       return;
+     }
+     setValidationError('');
+     setIsLoading(true);
+ 
+     const totalNumber = Number(floors);
+     const floorCost = Number(basicCost);
+     const parkingCostPercentage = parkingPercent / 100;
+ 
+     const totalRes = calculateBuildingCost(
+       floorCost,
+       totalNumber,
+       netBeamsSlabPercentage,
+       beamsSlabConstructibilityCost,
+       netEnvelopePercentage,
+       envelopeConstructibilityCost,
+       MEPPercentage,
+       MEPConstructibilityCost,
+       netColumnPercentage,
+       columnConstructibilityCost,
+       netFoundationPercentage,
+       isGroundParking,
+       parkingCostPercentage
+     );
+ 
+     setCalculationResult(totalRes);
+     setComponentPieData(
+       COMPONENT_KEYS.map((c, i) => ({
+         name: c.label,
+         value: totalRes.breakdown[c.key],
+         color: PIE_COLORS[i],
+       }))
+     );
+ 
+     const floorcostArr = [];
+     for (let i = 1; i <= totalNumber; i++) {
+       const tillThatFloorCost = calculateBuildingCost(
+         floorCost,
+         i,
+         netBeamsSlabPercentage,
+         beamsSlabConstructibilityCost,
+         netEnvelopePercentage,
+         envelopeConstructibilityCost,
+         MEPPercentage,
+         MEPConstructibilityCost,
+         netColumnPercentage,
+         columnConstructibilityCost,
+         netFoundationPercentage,
+         isGroundParking,
+         parkingCostPercentage
+       );
+       floorcostArr.push({ floor: i, cost: tillThatFloorCost.finalBuildingCost });
+     }
+     setCostByFloorData(floorcostArr);
+ 
+     const costArr = [];
+     for (let i = 1; i <= totalNumber; i++) {
+       const floorRes = calculateFloorCost(
+         floorCost,
+         i,
+         totalNumber,
+         netBeamsSlabPercentage,
+         beamsSlabConstructibilityCost,
+         netEnvelopePercentage,
+         envelopeConstructibilityCost,
+         MEPPercentage,
+         MEPConstructibilityCost,
+         netColumnPercentage,
+         columnConstructibilityCost,
+         netFoundationPercentage
+       );
+       costArr.push({ floor: i, cost: floorRes.floorCost, floorBreakdown: floorRes.floorBreakdown });
+     }
+ 
+     const breakdownArr = costArr.map(({ floor, floorBreakdown }) => ({
+       floor,
+       'Beams & Slab': floorBreakdown.beamsSlabCost,
+       Column: floorBreakdown.columnCost,
+       Foundation: floorBreakdown.foundationCost,
+       Envelope: floorBreakdown.envelopeCost,
+       MEP: floorBreakdown.MEPCost,
+     }));
+     setBreakdownByFloorData(breakdownArr);
+ 
+     setIsLoading(false);
+   };
+ 
+  // Calculate revenue for a single floor
+   const calculateFloorRevenue = (floorNumber, totalFloors) => {
+     const basePriceNum = Number(basePrice);
+     const viewPremium = calculateViewPremium(
+       Number(viewPercentage) / 100,
+       basePriceNum,
+       Number(viewBase),
+       floorNumber
+     );
+     
+     const heatPenalty = floorNumber === 1 
+       ? 0 
+       : calculateHeatPenalty(
+           Number(maxHeatPenaltyPercentage) / 100,
+           basePriceNum,
+           Number(heatExponent),
+           floorNumber,
+           totalFloors
+         );
+ 
+     const elevatorPenalty = calculateElevatorPenalty(
+       Number(elevatorPenaltyPercentage) / 100,
+       basePriceNum,
+       floorNumber
+     );
+ 
+     const floorRevenue = (basePriceNum + viewPremium - heatPenalty - elevatorPenalty) * Number(area);
+     
+     return {
+       floorRevenue,
+       floorBreakdown: {
+         basePrice: basePriceNum * Number(area),
+         viewPremium: viewPremium * Number(area),
+         heatPenalty: heatPenalty * Number(area),
+         elevatorPenalty: elevatorPenalty * Number(area),
+       }
+     };
+   };
+ 
+   // Main calculation
+   const calculateRevenue = () => {
+     setValidationErrorRev('');
+     setIsLoadingRev(true);
+     setTotalBuildingRevenue(null);
+     setBuildingRevenuePerSqFeet(null);
 
-  // === calculateRevenue (from Revenue.jsx) ===
-  const calculateRevenue = async () => {
-    setValidationErrorRev('');
-    setIsLoadingRev(true);
-    setTotalBuildingRevenue(null);
-    try {
-      const req = {
-        basePrice: Number(basePrice),
-        viewPercentage: viewPercentage / 100,
-        viewBase: Number(viewBase),
-        maxHeatPenaltyPercentage: maxHeatPenaltyPercentage / 100,
-        heatExponent: Number(heatExponent),
-        elevatorPenaltyPercentage: elevatorPenaltyPercentage / 100,
-        area: Number(area),
-        marr: cashflowMarr ? cashflowMarr / 100 : 0.2,
-      };
-      const firstRes = await fetch('http://localhost:3000/revenue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...req,
-          totalNumber: Number(floors),
-          floorNumber: 1,
-        }),
-      });
-      const firstData = await firstRes.json();
-      setTotalBuildingRevenue(firstData.buildingRevenue);
-      setBuildingRevenuePerSqFeet(firstData.buildingRevenuePerSqFeet);
-      const revArr = [];
-      for (let i = 1; i <= Number(floors); i++) {
-        const r = await fetch('http://localhost:3000/revenue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...req,
-            totalNumber: Number(floors),
-            floorNumber: i,
-          }),
-        });
-        const d = await r.json();
-        revArr.push({ floor: i, revenue: d.floorRevenue });
-      }
-      setRevenueByFloorData(revArr);
-      const br = [];
-      for (let i = 1; i <= Number(floors); i++) {
-        const r = await fetch('http://localhost:3000/revenue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...req,
-            totalNumber: Number(floors),
-            floorNumber: i,
-          }),
-        });
-        const d = await r.json();
-        br.push({
-          floor: i,
-          Base: d.floorBreakdown.basePrice,
-          'View Premium': d.floorBreakdown.viewPremium,
-          'Heat Penalty': Math.abs(d.floorBreakdown.heatPenalty),
-          'Elevator Penalty': Math.abs(d.floorBreakdown.elevatorPenalty),
-        });
-      }
-      setBreakdownByFloorRev(br);
-    } catch (err) {
-      setValidationErrorRev('Error calculating revenue. Please try again.');
-    } finally {
-      setIsLoadingRev(false);
-    }
-  };
+     const totalFloors = Number(floors);
+     let totalRevenue = 0;
+     const revenueArr = [];
+     const breakdownArr = [];
+
+     // Calculate revenue for each floor
+     for (let i = 1; i <= totalFloors; i++) {
+       const result = calculateFloorRevenue(i, totalFloors);
+       totalRevenue += result.floorRevenue;
+       
+       revenueArr.push({
+         floor: i,
+         revenue: result.floorRevenue,
+       });
+
+       breakdownArr.push({
+         floor: i,
+         Base: result.floorBreakdown.basePrice / Number(area),
+         'View Premium': result.floorBreakdown.viewPremium / Number(area),
+         'Heat Penalty': result.floorBreakdown.heatPenalty / Number(area),
+         'Elevator Penalty': result.floorBreakdown.elevatorPenalty / Number(area),
+       });
+     }
+
+     setRevenueByFloorData(revenueArr);
+     setBreakdownByFloorRev(breakdownArr);
+     setTotalBuildingRevenue(totalRevenue);
+     setBuildingRevenuePerSqFeet(totalRevenue / (Number(area) * totalFloors));
+     setIsLoadingRev(false);
+   };
+ 
 
   const generateCashflow = async () => {
     if (!calculationResult || revenueByFloorData.length === 0) {
@@ -311,76 +356,70 @@ export default function Cashflow() {
     setIsGeneratingCashflow(true);
 
     const tempCashflowData = [];
-    const reqCost = {
-      totalNumber: Number(floors),
-      floorCost: Number(basicCost),
-      isParkingFloor: isGroundParking,
-      parkingCostPercentage: parkingPercent / 100,
-      civilPercentage: params.find((p) => p.id === 'civil').percent / 100,
-      structuralPercentage:
-        params.find((p) => p.id === 'structural').percent / 100,
-      beamsSlabPercentage: params.find((p) => p.id === 'beams').percent / 100,
-      columnPercentage: params.find((p) => p.id === 'column').percent / 100,
-      foundationPercentage:
-        params.find((p) => p.id === 'foundation').percent / 100,
-      envelopePercentage: params.find((p) => p.id === 'envelope').percent / 100,
-      MEPPercentage: params.find((p) => p.id === 'mep').percent / 100,
-      marr: cashflowMarr / 100,
-      fsi,
-      builtupAreaSqFtPerFloor,
-      landCostPerSqFt,
-      landAreaBaseSqFt,
-    };
-    const reqRev = {
-      basePrice: Number(basePrice),
-      viewPercentage: viewPercentage / 100,
-      viewBase: Number(viewBase),
-      maxHeatPenaltyPercentage: maxHeatPenaltyPercentage / 100,
-      heatExponent: Number(heatExponent),
-      elevatorPenaltyPercentage: elevatorPenaltyPercentage / 100,
-      area: Number(area),
-      marr: cashflowMarr / 100,
-    };
-
-    let cumulativeRevenue = 0;
-    let cumulativeCost = 0;
+    const totalNumber = Number(floors);
+    const floorCost = Number(basicCost);
+    const marrDecimal = cashflowMarr / 100;
+    const parkingCostPercentage = parkingPercent / 100;
 
     try {
-      for (let i = 1; i <= Number(floors); i++) {
-        const costRes = await fetch('http://localhost:3000/totalcost', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...reqCost,
-            // totalNumber: Number(floors),
-            // floorNumber: i,
-            totalNumber: i,
-          }),
-        });
-        const costData = await costRes.json();
-        cumulativeCost =
-          costData.cashflowBuildingCost + costData.buildingLandCost;
+      let cumulativeRevenue = 0;
+      let cumulativeCost = 0;
 
-        const revRes = await fetch('http://localhost:3000/revenue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...reqRev,
-            totalNumber: Number(floors),
-            floorNumber: i,
-          }),
-        });
-        const revData = await revRes.json();
+      // Calculate revenue cashflow factor once since it's the same for all floors
+      const revenueCashflowDistribution = [0.5, 0.3, 0.2]; // Year 1, 2, 3
+      let revenueDiscountedSum = 0;
+      for (let year = 1; year <= 3; year++) {
+        revenueDiscountedSum += revenueCashflowDistribution[year - 1] / Math.pow(1 + marrDecimal, year);
+      }
 
-        // Here we cumulatively add floor-by-floor
-        cumulativeRevenue += revData.floorRevenueForCashflow;
-        // cumulativeCost += costData.cashflowFloorCost;
+      for (let i = 1; i <= totalNumber; i++) {
+        // Calculate built-up area and land cost for current floor
+        const builtupArea = (builtupAreaSqFtPerFloor * i) / fsi;
+        const landCost = builtupArea < landAreaBaseSqFt 
+          ? landCostPerSqFt * landAreaBaseSqFt 
+          : landCostPerSqFt * builtupArea;
+
+        // Calculate building cost till floor i
+        const buildingRes = calculateBuildingCost(
+          floorCost,
+          i,
+          netBeamsSlabPercentage,
+          beamsSlabConstructibilityCost,
+          netEnvelopePercentage,
+          envelopeConstructibilityCost,
+          MEPPercentage,
+          MEPConstructibilityCost,
+          netColumnPercentage,
+          columnConstructibilityCost,
+          netFoundationPercentage,
+          isGroundParking,
+          parkingCostPercentage
+        );
+
+        // Apply S-curve distribution for construction cost
+        const sCurveDistribution = [0.1, 0.2, 0.35, 0.25, 0.1]; // Year 1 to 5
+        let costDiscountedSum = 0;
+        for (let year = 1; year <= 5; year++) {
+          costDiscountedSum += sCurveDistribution[year - 1] / Math.pow(1 + marrDecimal, year);
+        }
+
+        // Calculate discounted building cost
+        const baseYear0Cost = buildingRes.finalBuildingCost * costDiscountedSum;
+        
+        // Add land cost and apply construction period adjustment
+        const totalFloorCost = (baseYear0Cost + landCost) * Math.pow(1 + marrDecimal, cashflowConstructionPeriod);
+        cumulativeCost = totalFloorCost;
+
+        // Calculate revenue with cashflow factor
+        const revenueRes = calculateFloorRevenue(i, totalNumber);
+        const adjustedRevenue = revenueRes.floorRevenue * revenueDiscountedSum;
+        cumulativeRevenue += adjustedRevenue;
 
         tempCashflowData.push({
           floor: i,
           Revenue: cumulativeRevenue,
-          // Cost: cumulativeCost + costData.cashflowFloorCost,
           Cost: cumulativeCost,
+          Profit: cumulativeRevenue - cumulativeCost
         });
       }
 
@@ -541,7 +580,7 @@ export default function Cashflow() {
                 <div className='summary-item'>
                   <span className='summary-label'>Total Floors</span>
                   <span className='summary-value'>
-                    {calculationResult.totalNumber}
+                  {Number(floors)}
                   </span>
                 </div>
                 <div className='summary-item'>
@@ -648,7 +687,6 @@ export default function Cashflow() {
                       offset: -10,
                     }}
                   />
-
                   <YAxis
                     tickFormatter={(value) => {
                       if (value === 0) return '₹0';
