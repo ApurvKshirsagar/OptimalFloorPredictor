@@ -1,37 +1,44 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import './Home.css';
 
 export default function Home() {
-  const navigate = useNavigate(); // 2. Initialize navigate
+  const navigate = useNavigate();
 
   return (
     <>
       <section className='hero-section'>
-        <h1 className='hero-title'>
-          Skyscraper & Building Construction Cost Estimator
-        </h1>
+        <h1 className='hero-title'>Skyscraper & Building Project Estimator</h1>
         <p className='hero-subtitle'>
-          An advanced tool designed to estimate the construction cost of
-          skyscrapers and multi-story buildings
+          Analyze construction cost, floor-wise revenue, and cashflow for
+          skyscrapers and multi-story buildings. Model your project’s financials
+          and optimize the number of floors for maximum profitability.
         </p>
-        <button
-          className='hero-button'
-          onClick={() => navigate('/calculator')} // 3. Navigate on click
-        >
-          Start Estimating <span className='arrow'>&rarr;</span>
-        </button>
+        <div className='hero-navlinks'>
+          <button
+            className='hero-button'
+            onClick={() => navigate('/calculator')}
+          >
+            Cost Estimation
+          </button>
+          <button className='hero-button' onClick={() => navigate('/revenue')}>
+            Revenue Analysis
+          </button>
+          <button className='hero-button' onClick={() => navigate('/cashflow')}>
+            Cashflow & Optimization
+          </button>
+        </div>
       </section>
 
       <section className='about-section'>
         <h2 className='about-title'>About the Tool</h2>
         <p className='about-description'>
-          SkyCost Dashboard is an advanced tool designed to estimate the
-          construction cost of skyscrapers and multi-story buildings. By
-          inputting the number of floors and the cost of building a single-story
-          floor, the tool provides an accurate calculation of the total cost for
-          high-rise projects, making it ideal for architects, developers, and
-          construction planners.
+          The SkyCost Dashboard empowers architects, developers, and planners to
+          make data-driven decisions for high-rise projects. By inputting your
+          project parameters, you get detailed calculations for construction
+          cost, projected revenue by floor, and cumulative cashflow. This
+          enables comprehensive evaluation of project feasibility and
+          profitability.
         </p>
       </section>
 
@@ -45,15 +52,27 @@ export default function Home() {
               User Manual
             </div>
             <div className='info-card-text'>
-              Learn how to use the SkyCost Dashboard effectively. Our
-              comprehensive user manual will guide you through each feature and
-              help you get the most accurate cost estimations.
+              Learn how to use the SkyCost Dashboard for complete project
+              analysis:
               <ul>
-                <li>Enter the cost of a basic floor in dollars</li>
-                <li>Specify the number of floors for your building</li>
-                <li>Adjust construction parameters as needed</li>
-                <li>View detailed cost breakdown and visualizations</li>
-                <li>Export and share your cost estimation reports</li>
+                <li>
+                  Enter the base cost of a single floor and the total number of
+                  floors
+                </li>
+                <li>
+                  Set revenue parameters including base price, view premium, and
+                  penalty factors
+                </li>
+                <li>Adjust construction and financial parameters as needed</li>
+                <li>
+                  View detailed breakdowns of cost, revenue, and cashflow for
+                  every floor
+                </li>
+                <li>
+                  Visualize trends and identify the optimal number of floors for
+                  your project
+                </li>
+                <li>Export and share comprehensive project reports</li>
               </ul>
             </div>
           </div>
@@ -64,25 +83,30 @@ export default function Home() {
                 aria-label='how it works'
                 className='info-card-icon'
               >
-                ⚗️
+                ⚗
               </span>{' '}
               How It Works
             </div>
             <div className='info-card-text'>
-              The SkyCost Dashboard uses industry-standard formulas and
-              algorithms to calculate construction costs based on your inputs.
-              The tool accounts for various factors affecting skyscraper
-              construction.
+              The SkyCost Dashboard uses engineering and real estate models to
+              simulate your project’s financials:
               <ul>
                 <li>
-                  Takes basic floor cost and multiplies by the number of floors
+                  Calculates construction cost for each floor, including beams,
+                  columns, foundation, envelope, and MEP
                 </li>
-                <li>Applies height factors for taller buildings</li>
                 <li>
-                  Calculates structural component costs based on percentages
+                  Estimates revenue for every floor, factoring in view premiums,
+                  heat penalties, and elevator penalties
                 </li>
-                <li>Factors in MEP (Mechanical, Electrical, Plumbing) costs</li>
-                <li>Provides comprehensive visualization of cost breakdown</li>
+                <li>
+                  Generates cumulative cashflow curves and identifies the most
+                  profitable building height
+                </li>
+                <li>
+                  Provides interactive charts and tables for cost, revenue, and
+                  cashflow analysis
+                </li>
               </ul>
             </div>
           </div>
@@ -93,36 +117,28 @@ export default function Home() {
                 aria-label='disclaimer'
                 className='info-card-icon'
               >
-                ⚠️
+                ⚠
               </span>{' '}
               Disclaimer & Assumptions
             </div>
             <div className='info-card-text'>
-              The SkyCost Dashboard provides estimations based on standard
-              industry data and assumptions. Actual construction costs may vary
-              based on location, market conditions, and specific project
-              requirements.
+              SkyCost Dashboard provides estimates based on industry data and
+              academic models. Actual results may vary depending on:
               <ul>
                 <li>
-                  All costs are in USD and based on typical US construction
-                  rates
+                  Location, market conditions, and project-specific requirements
                 </li>
-                <li>Default percentages represent industry averages</li>
-                <li>The tool assumes standard construction methods</li>
-                <li>Land acquisition costs are not included</li>
-                <li>Local taxes, permits, and fees are not included</li>
+                <li>Input parameters and construction standards</li>
                 <li>
-                  Special architectural features may require additional costs
+                  Land acquisition costs, taxes, and special features (which may
+                  need to be added separately)
                 </li>
               </ul>
             </div>
           </div>
         </div>
         <div className='info-cards-action'>
-          <button
-            className='hero-button'
-            onClick={() => navigate('/calculator')}
-          >
+          <button className='hero-button' onClick={() => navigate('/cashflow')}>
             Try the Calculator Now <span className='arrow'>&rarr;</span>
           </button>
         </div>
@@ -133,38 +149,38 @@ export default function Home() {
         <div className='features-list'>
           <div className='feature-item'>
             <div className='feature-circle'>1</div>
-            <div className='feature-label'>Accurate Estimation</div>
+            <div className='feature-label'>Comprehensive Estimation</div>
             <div className='feature-desc'>
-              Get precise cost estimations based on industry standards and
-              formulas
+              Model construction cost, revenue, and cashflow for any building
+              height.
             </div>
           </div>
           <div className='feature-item'>
             <div className='feature-circle'>2</div>
-            <div className='feature-label'>Visual Breakdown</div>
+            <div className='feature-label'>Visual Analysis</div>
             <div className='feature-desc'>
-              View detailed charts and graphs of cost components and
-              distribution
+              Explore detailed charts and graphs showing cost, revenue, and
+              cashflow distribution by floor.
             </div>
           </div>
           <div className='feature-item'>
             <div className='feature-circle'>3</div>
             <div className='feature-label'>Customizable Parameters</div>
             <div className='feature-desc'>
-              Adjust construction parameters to match your specific project
-              requirements
+              Adjust all key inputs to reflect your unique project requirements
+              and scenarios.
             </div>
           </div>
           <div className='feature-item'>
             <div className='feature-circle'>4</div>
-            <div className='feature-label'>Professional Reports</div>
+            <div className='feature-label'>Professional Reporting</div>
             <div className='feature-desc'>
-              Generate comprehensive cost reports for project planning and
-              presentations
+              Generate and export detailed reports for project documentation,
+              planning, and presentations.
             </div>
           </div>
         </div>
       </section>
-    </>
-  );
+    </>
+  );
 }

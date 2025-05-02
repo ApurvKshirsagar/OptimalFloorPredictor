@@ -52,7 +52,7 @@ export default function Navbar() {
             Cash Flow
           </NavLink>
         </li>
-        <li>
+        {/* <li>
           <NavLink
             to='/about'
             className={({ isActive }) =>
@@ -61,7 +61,7 @@ export default function Navbar() {
           >
             About Us
           </NavLink>
-        </li>
+        </li> */}
       </ul>
     </nav>
   );

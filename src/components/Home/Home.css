@@ -179,6 +179,12 @@
   font-size: 1rem;
   line-height: 1.5;
 }
+.hero-navlinks {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+}
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
@@ -189,6 +195,6 @@
   }
   .info-card,
   .feature-item {
-    max-width: 100%;
-  }
+    max-width: 100
+  }
 }
